@@ -1,127 +1,99 @@
-
-/**
- * Comments should be present at the beginning of each procedure and class.
- * Great to have comments before crucial code sections within the procedure.
-*/
-
-/**
- * Define Global Variables
- * 
-*/
-// selects all sections, hide variable used to hide the navigation bar 
+// Define Global Variables
 const sections = document.querySelectorAll('section');
 const menu = document.getElementById("navbar__list");
 const topButton = document.getElementById('top-button');
-var hide;
+let hide;
 
-
-/**
- * End Global Variables
- * Start Helper Functions
- * 
-*/
-// this function return the visible height of the section in the viewport
+// Build the navigation menu
+function buildNav() {
+    const fragment = document.createDocumentFragment();
+    for (const section of sections) {
+      const li = document.createElement('li');
+      const anchor = document.createElement('a');
+      anchor.href = `#${section.id}`;
+      anchor.className = "menu__link";
+      anchor.setAttribute('data-id', section.id);
+      anchor.textContent = section.getAttribute('data-nav');
+      li.appendChild(anchor);
+      fragment.appendChild(li);
+    }
+    menu.appendChild(fragment);
+  }
+// Helper function to get the visible height of a section in the viewport
 function getVisibleHeight(element) {
-    const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
+    const windowHeight = window.innerHeight || document.documentElement.clientHeight;
     const box = element.getBoundingClientRect();
     const top = Math.min(Math.max(box.top, 0), windowHeight);
     const bottom = Math.min(Math.max(box.bottom, 0), windowHeight);
     return bottom - top;
-}
-
-
-/**
- * End Helper Functions
- * Begin Main Functions
- * 
-*/
-
-// build the nav
-function buildNav(){
-    const fragment = document.createDocumentFragment();
-    for (let sec of sections) {
-        const li = document.createElement('li');
-        const anchor = document.createElement('a');
-        anchor.href = '#' + sec.id;
-        anchor.className = "menu__link";
-        anchor.setAttribute('data-id', sec.id);
-        anchor.textContent = sec.getAttribute('data-nav');
-        li.appendChild(anchor);
-        fragment.appendChild(li);
+  }
+  
+  // Add class 'active' to section when near top of viewport
+  function scrollHandler() {
+    // Make the navbar visible
+    menu.classList.remove('hidden');
+  
+    let maxVisibleHeight = 0;
+    let activeSection = sections[0];
+  
+    for (const section of sections) {
+      const height = getVisibleHeight(section);
+      if (height > maxVisibleHeight) {
+        maxVisibleHeight = height;
+        activeSection = section;
+      } else if (height < maxVisibleHeight) {
+        break; // All subsequent sections will have less height, so break the loop
+      }
     }
-    menu.appendChild(fragment);
-}
-
-// Add class 'active' to section when near top of viewport
-
+  
+    for (const section of sections) {
+      const sectionVisibleHeight = getVisibleHeight(section);
+      const link = document.querySelector(`a[data-id="${section.id}"]`);
+      const isActive = sectionVisibleHeight === maxVisibleHeight;
+      section.classList.toggle('your-active-class', isActive);
+      link.classList.toggle('selected', isActive);
+    }
+  
+    // Hide navigation bar when not scrolling
+    clearTimeout(hide);
+    hide = setTimeout(() => {
+      menu.classList.add("hidden");
+    }, 3000);
+  
+    // Show top button when the window is not at the top
+    topButton.classList.toggle('show', (document.documentElement.scrollTop > 300));
+  }
+  
+  // Scroll to section on link click
+  function scrollToSection(evt) {
+    const link = evt.target;
+    if (link.nodeName !== 'A') return;
+  
+    evt.preventDefault();
+    const element = document.getElementById(link.getAttribute('data-id'));
+    const offsetTop = element.offsetTop;
+    const duration = 1000; // Adjust the duration as desired
+    const startingY = window.pageYOffset;
+    const diff = offsetTop - startingY;
+    let start;
+  
+    function step(timestamp) {
+      if (!start) start = timestamp;
+      const time = timestamp - start;
+      const percentage = Math.min(time / duration, 1);
+      window.scrollTo(0, startingY + diff * percentage);
+  
+      if (time < duration) {
+        window.requestAnimationFrame(step);
+      }
+    }
+  
+    window.requestAnimationFrame(step);
+  }
+  
+// Build the navigation menu
 buildNav();
 
-function scrollHandler() {
-    // make the navbar hidden
-    menu.classList.remove('hidden');
-    // loop over sections and get the section that has the max visible height
-    let mx = 0;
-    let active = sections[0];
-    for (let sec of sections) {
-        let height = getVisibleHeight(sec);
-        if (height > mx) {
-            mx = height;
-            active = sec;
-        } else if (height < mx) {
-            // all of the next sections will be less in height, so break
-            break;
-        }
-    }
-    for (const sec of sections) {
-        if (getVisibleHeight(sec) < mx && sec.classList.contains('your-active-class')) {
-            sec.classList.remove('your-active-class');
-            let link = document.querySelector('a[data-id='+sec.id+']');
-            link.classList.remove('selected');
-        } else if (getVisibleHeight(sec) == mx && !sec.classList.contains('your-active-class')) {
-            sec.classList.add('your-active-class');
-            let link = document.querySelector('a[data-id='+sec.id+']');
-            link.classList.add('selected');
-        }
-    }
-
-    // hide navigation bar when not scrolling
-    window.clearTimeout(hide);
-    hide = setTimeout(() => {
-        menu.classList.add("hidden");
-    }, 3000);
-
-    // add top button when the window is not at the top
-    if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-        topButton.classList.add('show');
-    } else {
-        topButton.classList.remove('show');
-    }
-}
-
-// Scroll to anchor ID using scrollTO event
-function scrollToSection(evt) {
-    const link = evt.target;
-    if (link.nodeName == 'A') {
-        evt.preventDefault();
-        const element = document.getElementById(link.getAttribute('data-id'));
-        element.scrollIntoView({behavior:"smooth"});
-    }
-}
-
-
-
-/**
- * End Main Functions
- * Begin Events
- * 
-*/
-
-// Build menu 
-
-// Scroll to section on link click
+// Add event listeners
 menu.addEventListener('click', scrollToSection);
-
-// Set sections as active
 window.addEventListener("scroll", scrollHandler);
-
-
